@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Enhanced Wikipedia Agriculture Scraper - Main Execution File
+Large-Scale Wikipedia Agriculture Scraper - For Deep Learning Training
 """
 
 import os
@@ -12,11 +12,11 @@ import traceback
 sys.path.append('src')
 
 try:
-    from enhanced_scraper import EnhancedAgricultureScraper
-    ENHANCED_SCRAPER_AVAILABLE = True
+    from large_scale_scraper import LargeScaleAgricultureScraper
+    LARGE_SCALE_AVAILABLE = True
 except ImportError as e:
-    print(f"⚠️ Enhanced scraper not available: {e}")
-    ENHANCED_SCRAPER_AVAILABLE = False
+    print(f"⚠️ Large-scale scraper not available: {e}")
+    LARGE_SCALE_AVAILABLE = False
 
 def setup_environment():
     """Setup the project environment"""
@@ -34,100 +34,50 @@ def setup_environment():
         os.makedirs(directory, exist_ok=True)
         print(f"✅ Created directory: {directory}")
 
-def run_enhanced_scraping():
-    """Run enhanced scraping with Wikipedia API"""
-    print("🚀 Starting Enhanced Wikipedia Agriculture Scraping...")
+def run_large_scale_scraping():
+    """Run large-scale agriculture data scraping"""
+    print("🚀 Starting Large-Scale Agriculture Data Collection...")
+    print("💡 This will scrape thousands of agriculture-related pages for deep learning training.")
     
     try:
-        # Initialize scraper with safe settings
-        scraper = EnhancedAgricultureScraper(delay=1.0)  # Slower to be safe
+        scraper = LargeScaleAgricultureScraper()
+        scraped_data = scraper.run_comprehensive_scraping()
         
-        # Scrape core agriculture topics
-        core_topics = ['Agriculture', 'Farming', 'Crop', 'Irrigation', 'Soil_science']
-        
-        all_pages = []
-        
-        for topic in core_topics:
-            try:
-                print(f"\n🌾 Scraping: {topic}")
-                page_data = scraper.scrape_page(topic)
-                if page_data:
-                    all_pages.append(page_data)
-                    print(f"✅ Success: {page_data.title} ({page_data.word_count} words)")
-                else:
-                    print(f"⚠️ Failed: {topic}")
-            except Exception as e:
-                print(f"❌ Error with {topic}: {str(e)}")
-                continue
-        
-        if all_pages:
-            scraper.scraped_pages = all_pages
-            file_paths = scraper.save_data("agriculture_data")
-            scraper.print_scraping_summary()
-            return file_paths
+        if scraped_data:
+            print(f"\n✅ Large-scale scraping completed!")
+            print(f"📊 Collected {len(scraped_data)} agriculture-related pages")
+            return True
         else:
-            print("❌ No pages were successfully scraped")
-            return None
+            print("❌ No data was collected")
+            return False
             
     except Exception as e:
-        print(f"❌ Enhanced scraping failed: {e}")
+        print(f"❌ Large-scale scraping failed: {e}")
         traceback.print_exc()
-        return None
-
-def check_existing_data():
-    """Check if we already have scraped data"""
-    csv_paths = [
-        "data/processed/agriculture_comprehensive.csv",
-        "data/processed/agriculture_data.csv", 
-        "data/processed/agriculture_safe.csv"
-    ]
-    
-    for csv_path in csv_paths:
-        if os.path.exists(csv_path):
-            print(f"✅ Found existing data: {csv_path}")
-            try:
-                df = pd.read_csv(csv_path)
-                print(f"   📊 {len(df)} pages, {df['word_count'].sum():,} total words")
-                return csv_path
-            except Exception as e:
-                print(f"   ⚠️ Error reading file: {e}")
-    
-    return None
+        return False
 
 def main():
     """Main execution function"""
-    print("🌾 WIKIPEDIA AGRICULTURE SCRAPER")
-    print("=" * 50)
+    print("🌾 LARGE-SCALE WIKIPEDIA AGRICULTURE SCRAPER")
+    print("=" * 60)
+    print("🎯 Purpose: Collect massive agriculture data for deep learning")
+    print("📈 Target: 10,000+ agriculture-related Wikipedia pages")
+    print("=" * 60)
     
     setup_environment()
     
-    # Check for existing data first
-    existing_data = check_existing_data()
-    
-    if existing_data:
-        print(f"\n🎉 Data already exists at: {existing_data}")
-        print("💡 Run analysis or export scripts to work with the data.")
-        return
-    
-    print("\n📥 No existing data found. Starting fresh scrape...")
-    
-    # Try enhanced scraper
-    if ENHANCED_SCRAPER_AVAILABLE:
-        print("\n🔄 Starting enhanced scraping...")
-        file_paths = run_enhanced_scraping()
-        if file_paths:
-            print("\n✅ Enhanced scraping completed successfully!")
-            print(f"📁 Data saved to:")
-            print(f"   • {file_paths['csv_path']}")
-            print(f"   • {file_paths['json_path']}")
+    if LARGE_SCALE_AVAILABLE:
+        print("\n🔄 Starting large-scale data collection...")
+        success = run_large_scale_scraping()
+        
+        if success:
+            print("\n🎉 DATA COLLECTION COMPLETED!")
+            print("💾 Check 'data/processed/' for your agriculture dataset")
         else:
-            print("\n❌ Enhanced scraping failed.")
-            print("💡 Please check your internet connection and try again.")
+            print("\n❌ Data collection failed")
     else:
-        print("\n❌ Enhanced scraper not available.")
-        print("💡 Please install dependencies: pip install wikipedia-api pandas")
-    
-    print("\n🎉 PROCESSING COMPLETED!")
+        print("\n❌ Large-scale scraper not available.")
+        print("💡 Please install dependencies: pip install wikipedia-api pandas tqdm")
 
 if __name__ == "__main__":
     main()

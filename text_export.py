@@ -1,17 +1,54 @@
 """
-Advanced text export with better formatting
+Advanced text export with better formatting - UPDATED VERSION
 """
 
 import pandas as pd
 import json
 from datetime import datetime
+import os
 
 class AgricultureTextExporter:
-    def __init__(self):
-        self.df = pd.read_csv('data/processed/agriculture_data.csv')
+    def __init__(self, csv_path=None):
+        # Try to find the CSV file automatically if not provided
+        if csv_path is None:
+            csv_path = self.find_latest_csv()
+        
+        if csv_path and os.path.exists(csv_path):
+            self.df = pd.read_csv(csv_path)
+            print(f"✅ Loaded dataset: {len(self.df)} pages, {self.df['word_count'].sum():,} words")
+        else:
+            print("❌ No CSV file found. Please provide a valid path.")
+            self.df = pd.DataFrame()
+    
+    def find_latest_csv(self):
+        """Find the most recent agriculture CSV file"""
+        possible_paths = [
+            "data/processed/agriculture_comprehensive_large.csv",
+            "data/processed/agriculture_data.csv", 
+            "data/processed/agriculture_comprehensive.csv"
+        ]
+        
+        # Also check for any CSV files in processed directory
+        if os.path.exists("data/processed"):
+            csv_files = [f for f in os.listdir("data/processed") if f.endswith('.csv') and 'agriculture' in f.lower()]
+            if csv_files:
+                # Get the most recent file
+                csv_files_with_paths = [os.path.join("data/processed", f) for f in csv_files]
+                csv_files_with_paths.sort(key=os.path.getmtime, reverse=True)
+                possible_paths.extend(csv_files_with_paths)
+        
+        for path in possible_paths:
+            if os.path.exists(path):
+                return path
+        
+        return None
     
     def export_comprehensive_report(self):
         """Export comprehensive report with all data"""
+        if self.df.empty:
+            print("❌ No data available. Please load a valid CSV file first.")
+            return None
+        
         print("📋 Creating Comprehensive Text Report...")
         
         content = []
@@ -29,6 +66,7 @@ class AgricultureTextExporter:
         content.append(f"Total Pages Analyzed: {len(self.df)}")
         content.append(f"Total Word Count: {self.df['word_count'].sum():,}")
         content.append(f"Average Page Length: {self.df['word_count'].mean():.0f} words")
+        content.append(f"Agriculture Focused Pages: {self.df['is_high_agriculture'].sum() if 'is_high_agriculture' in self.df.columns else 'N/A'}")
         content.append("")
         
         # Page Details
@@ -45,12 +83,14 @@ class AgricultureTextExporter:
             content.append(f"        • Categories: {row['categories_count']}")
             content.append(f"        • Sections: {row['sections_count']}")
             content.append(f"        • Links: {row['links_count']}")
+            if 'agriculture_score' in row:
+                content.append(f"        • Agriculture Score: {row['agriculture_score']:.2f}")
             content.append("")
             content.append("    📖 CONTENT SUMMARY:")
             content.append("    " + "─" * 45)
             
             # Format summary with proper indentation
-            summary = row['summary']
+            summary = str(row['summary']) if pd.notna(row['summary']) else "No summary available"
             wrapped_summary = self.wrap_text(summary, 60)
             for line in wrapped_summary:
                 content.append(f"    {line}")
@@ -60,7 +100,7 @@ class AgricultureTextExporter:
             # Categories (if available)
             if pd.notna(row['categories']) and row['categories']:
                 content.append("    🏷️ RELATED CATEGORIES:")
-                categories = row['categories'].split(' | ')[:10]  # First 10 categories
+                categories = str(row['categories']).split(' | ')[:10]  # First 10 categories
                 for cat in categories:
                     content.append(f"        • {cat}")
                 content.append("")
@@ -91,6 +131,10 @@ class AgricultureTextExporter:
     
     def export_for_research(self):
         """Export in research paper format"""
+        if self.df.empty:
+            print("❌ No data available. Please load a valid CSV file first.")
+            return None
+        
         print("🎓 Creating Research Format Export...")
         
         content = []
@@ -129,7 +173,8 @@ class AgricultureTextExporter:
             content.append(f"   Structure: {row['sections_count']} sections, {row['categories_count']} categories")
             content.append("")
             content.append("   Content Extract:")
-            summary_preview = row['summary'][:300] + "..." if len(row['summary']) > 300 else row['summary']
+            summary = str(row['summary']) if pd.notna(row['summary']) else "No summary available"
+            summary_preview = summary[:300] + "..." if len(summary) > 300 else summary
             wrapped = self.wrap_text(summary_preview, 65)
             for line in wrapped:
                 content.append(f"   {line}")
@@ -146,76 +191,204 @@ class AgricultureTextExporter:
     
     def export_minimal(self):
         """Export minimal version for quick reading"""
+        if self.df.empty:
+            print("❌ No data available. Please load a valid CSV file first.")
+            return None
+        
         print("📄 Creating Minimal Export...")
         
         content = []
         content.append("AGRICULTURE PAGES - MINIMAL VIEW")
         content.append("=" * 50)
+        content.append(f"Generated: {datetime.now().strftime('%Y-%m-%d %H:%M')}")
+        content.append(f"Total Pages: {len(self.df)}")
         content.append("")
         
         for i, row in self.df.iterrows():
             content.append(f"→ {row['title']}")
-            content.append(f"  Words: {row['word_count']:,}")
-            content.append(f"  URL: {row['url']}")
+            content.append(f"  📍 {row['url']}")
+            content.append(f"  📊 {row['word_count']:,} words")
             content.append("")
             # Very short summary
-            short_summary = row['summary'][:150] + "..." if len(row['summary']) > 150 else row['summary']
-            content.append(f"  {short_summary}")
+            summary = str(row['summary']) if pd.notna(row['summary']) else "No summary available"
+            short_summary = summary[:150] + "..." if len(summary) > 150 else summary
+            wrapped = self.wrap_text(short_summary, 65)
+            for line in wrapped:
+                content.append(f"  {line}")
             content.append("")
         
-        filename = f"Agriculture_Minimal.txt"
+        filename = f"Agriculture_Minimal_View.txt"
         with open(filename, 'w', encoding='utf-8') as f:
             f.write('\n'.join(content))
         
         print(f"✅ Minimal export saved: {filename}")
         return filename
     
+    def export_simple_list(self):
+        """Export simple list format - easiest for Notepad"""
+        if self.df.empty:
+            print("❌ No data available. Please load a valid CSV file first.")
+            return None
+        
+        print("📝 Creating Simple List Export...")
+        
+        content = []
+        content.append("AGRICULTURE WIKIPEDIA PAGES - SIMPLE LIST")
+        content.append("=" * 50)
+        content.append(f"Exported: {datetime.now().strftime('%Y-%m-%d %H:%M')}")
+        content.append(f"Total Pages: {len(self.df)}")
+        content.append(f"Total Words: {self.df['word_count'].sum():,}")
+        content.append("")
+        
+        for i, row in self.df.iterrows():
+            content.append(f"{i+1}. {row['title']}")
+            content.append(f"   URL: {row['url']}")
+            content.append(f"   Words: {row['word_count']:,}")
+            content.append(f"   Summary: {str(row['summary']) if pd.notna(row['summary']) else 'No summary'}")
+            content.append("")
+        
+        filename = f"Agriculture_Simple_List.txt"
+        with open(filename, 'w', encoding='utf-8') as f:
+            f.write('\n'.join(content))
+        
+        print(f"✅ Simple list saved: {filename}")
+        return filename
+    
+    def export_category_summary(self):
+        """Export categorized summary"""
+        if self.df.empty:
+            print("❌ No data available. Please load a valid CSV file first.")
+            return None
+        
+        print("🏷️ Creating Category Summary Export...")
+        
+        # Extract and count categories
+        all_categories = []
+        for categories_str in self.df['categories'].fillna(''):
+            if isinstance(categories_str, str):
+                categories = categories_str.split(' | ')
+                all_categories.extend(categories)
+        
+        from collections import Counter
+        category_counts = Counter(all_categories)
+        
+        content = []
+        content.append("AGRICULTURE CATEGORIES SUMMARY")
+        content.append("=" * 50)
+        content.append(f"Generated: {datetime.now().strftime('%Y-%m-%d %H:%M')}")
+        content.append(f"Total Categories: {len(category_counts)}")
+        content.append(f"Total Pages: {len(self.df)}")
+        content.append("")
+        
+        content.append("TOP CATEGORIES:")
+        content.append("-" * 30)
+        for category, count in category_counts.most_common(20):
+            content.append(f"{category}: {count} pages")
+        
+        content.append("")
+        content.append("PAGES BY CATEGORY:")
+        content.append("-" * 30)
+        
+        # Group pages by their first category
+        for category in list(category_counts.keys())[:15]:  # Top 15 categories
+            content.append("")
+            content.append(f"CATEGORY: {category}")
+            content.append("-" * 40)
+            
+            category_pages = []
+            for i, row in self.df.iterrows():
+                if pd.notna(row['categories']) and category in str(row['categories']):
+                    category_pages.append((row['title'], row['word_count']))
+            
+            for title, word_count in category_pages[:10]:  # Show first 10 pages per category
+                content.append(f"  • {title} ({word_count:,} words)")
+        
+        filename = f"Agriculture_Category_Summary.txt"
+        with open(filename, 'w', encoding='utf-8') as f:
+            f.write('\n'.join(content))
+        
+        print(f"✅ Category summary saved: {filename}")
+        return filename
+    
     def wrap_text(self, text, width=70):
         """Wrap text to specified width"""
         import textwrap
-        return textwrap.fill(text, width=width).split('\n')
+        if not text:
+            return [""]
+        return textwrap.fill(str(text), width=width).split('\n')
     
     def export_all_formats(self):
         """Export all formats at once"""
+        if self.df.empty:
+            print("❌ No data available. Please load a valid CSV file first.")
+            return []
+        
         print("🔄 Exporting all text formats...")
         
         files = []
         files.append(self.export_comprehensive_report())
         files.append(self.export_for_research())
         files.append(self.export_minimal())
+        files.append(self.export_simple_list())
+        files.append(self.export_category_summary())
         
-        print(f"\n✅ All formats exported: {len(files)} files created")
-        return files
+        print(f"\n✅ All formats exported: {len([f for f in files if f])} files created")
+        return [f for f in files if f]
 
 def main():
     """Main function for advanced export"""
     print("🌾 ADVANCED TEXT EXPORT FOR AGRICULTURE DATA")
     print("=" * 50)
     
-    try:
-        exporter = AgricultureTextExporter()
+    # Auto-detect CSV file or ask for path
+    csv_path = None
+    
+    # Try to find automatically
+    exporter = AgricultureTextExporter()
+    
+    if exporter.df.empty:
+        # If auto-detection failed, ask for path
+        print("\n📁 Please provide the path to your agriculture CSV file:")
+        print("   Example: data/processed/agriculture_comprehensive_large.csv")
+        csv_path = input("CSV file path: ").strip()
         
-        print("\n📋 Available Export Formats:")
-        print("1. Comprehensive Report (Detailed)")
-        print("2. Research Paper Format")
-        print("3. Minimal View (Quick Read)")
-        print("4. All Formats")
+        if not csv_path:
+            print("❌ No path provided. Exiting.")
+            return
         
-        choice = input("\nChoose format (1-4): ").strip()
+        exporter = AgricultureTextExporter(csv_path)
         
-        if choice == '1':
-            exporter.export_comprehensive_report()
-        elif choice == '2':
-            exporter.export_for_research()
-        elif choice == '3':
-            exporter.export_minimal()
-        elif choice == '4':
-            exporter.export_all_formats()
-        else:
-            print("❌ Invalid choice")
-            
-    except Exception as e:
-        print(f"❌ Error: {e}")
+        if exporter.df.empty:
+            print("❌ Could not load the CSV file. Please check the path.")
+            return
+    
+    print(f"\n✅ Successfully loaded: {len(exporter.df)} agriculture pages")
+    print(f"📊 Total words: {exporter.df['word_count'].sum():,}")
+    
+    print("\n📋 Available Export Formats:")
+    print("1. Comprehensive Report (Detailed)")
+    print("2. Research Paper Format")
+    print("3. Minimal View (Quick Read)")
+    print("4. Simple List (Easiest for Notepad)")
+    print("5. Category Summary")
+    print("6. All Formats")
+    
+    choice = input("\nChoose option (1-6): ").strip()
+    
+    if choice == '1':
+        exporter.export_comprehensive_report()
+    elif choice == '2':
+        exporter.export_for_research()
+    elif choice == '3':
+        exporter.export_minimal()
+    elif choice == '4':
+        exporter.export_simple_list()
+    elif choice == '5':
+        exporter.export_category_summary()
+    elif choice == '6':
+        exporter.export_all_formats()
+    else:
+        print("❌ Invalid choice")
 
 if __name__ == "__main__":
     main()
