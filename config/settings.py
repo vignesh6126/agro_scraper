@@ -4,7 +4,7 @@ Configuration for Large-Scale Wikipedia Agriculture Scraping
 
 # Wikipedia API Configuration
 WIKIPEDIA_CONFIG = {
-    'user_agent': 'AgricultureResearchBot/2.0 (https://github.com/yourusername/agriculture-wiki-scraper)',
+    'user_agent': 'AgricultureResearchBot/2.0 (https://github.com/vignesh6126/agro_scraper)',
     'language': 'en',
     'rate_limit_delay': 0.3,  # Faster but still respectful
     'timeout': 30,
