@@ -1,7 +1,5 @@
 wikipedia-api==0.6.0
 pandas==2.2.2
-matplotlib==3.9.2
-seaborn==0.13.2
 wordcloud==1.9.4
 tqdm==4.67.1
 plotly==6.3.1
